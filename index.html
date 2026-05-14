@@ -753,7 +753,7 @@
     function skipTime(min) {
       let ticks = Math.floor(min/5);
       for(let i=0;i<ticks;i++) {
-        if(game.isSleeping) { game.energy=Math.min(100,game.energy+1.5); game.hunger=Math.max(0,game.hunger-0.2); }
+        if(game.isSleeping) { game.energy=Math.min(100,game.energy+7); game.hunger=Math.max(0,game.hunger-0.2); }
         else { game.hunger=Math.max(0,game.hunger-0.8); game.thirst=Math.max(0,game.thirst-0.6); game.energy=Math.max(0,game.energy-0.4); game.litter=Math.max(0,game.litter-0.3); }
       }
       addMessage(`⏳ ${min} мин.`, 'system');
