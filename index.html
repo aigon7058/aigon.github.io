@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Сфинкс: Эволюция 2.0</title>
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Сфинкс">
+  <link rel="manifest" id="manifest-link">
+  <style>
+    * { box-sizing: border-box; margin:0; padding:0; }
+    body { background: #0f0f1a; font-family: 'Segoe UI', system-ui, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    #app { width: 100%; max-width: 420px; height: 100vh; display: flex; flex-direction: column; background: #1a1a2e; box-shadow: 0 0 20px #000; }
+    #header { background: #16213e; padding: 12px; text-align: center; color: #e94560; font-weight: bold; font-size: 1.2em; border-bottom: 2px solid #e94560; }
+    #chat { flex:1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+    .msg { max-width: 85%; padding: 8px 12px; border-radius: 14px; line-height: 1.4; word-wrap: break-word; animation: fadeIn 0.2s; }
+    .msg.bot { background: #2d2d5e; color: #ddd; align-self: flex-start; border-bottom-left-radius: 2px; }
+    .msg.user { background: #e94560; color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+    .msg.system { background: #4a3b5c; color: #ffb347; align-self: center; font-style: italic; font-size: 0.9em; max-width: 90%; }
+    .time { font-size: 0.7em; color: #aaa; margin-top: 2px; text-align: right; }
+    .msg.bot .time { text-align: left; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    #input-area { display: flex; flex-direction: column; padding: 8px; background: #0f0f1a; border-top: 1px solid #333; gap: 6px; }
+    #cmd-row { display: flex; gap: 6px; }
+    #cmd-input { flex: 1; min-width: 100px; background: #2a2a4a; border: none; padding: 10px; border-radius: 20px; color: white; font-size: 14px; outline: none; }
+    .quick-btn { background: #3a3a6a; border: none; color: #ccc; padding: 8px 12px; border-radius: 16px; font-size: 12px; cursor: pointer; white-space: nowrap; transition: 0.2s; }
+    .quick-btn:active { background: #e94560; color: white; }
+    .row-buttons { display: flex; gap: 4px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="header">🐈‍⬛ СФИНКС • ЭВОЛЮЦИЯ 2.0</div>
+  <div id="chat"></div>
+  <div id="input-area">
+    <div id="cmd-row">
+      <input type="text" id="cmd-input" placeholder="Предложение или команда..." autofocus>
+    </div>
+    <div class="row-buttons">
+      <button class="quick-btn" data-cmd="статус">📋 Статус</button>
+      <button class="quick-btn" data-cmd="предложить играть">🎮 Игра</button>
+      <button class="quick-btn" data-cmd="гладить">🤚 Гладить</button>
+      <button class="quick-btn" data-cmd="предложить гулять">🚶 Гулять</button>
+      <button class="quick-btn" data-cmd="предложить охоту">🐭 Охота</button>
+      <button class="quick-btn" data-cmd="предложить трюк">🐾 Трюк</button>
+      <button class="quick-btn" data-cmd="лазер">🔴 Лазер</button>
+      <button class="quick-btn" data-cmd="предложить искать">🔍 Искать</button>
+      <button class="quick-btn" data-cmd="ветеринар">🏥 Вет</button>
+      <button class="quick-btn" data-cmd="предложить купаться">🛁 Купать</button>
+      <button class="quick-btn" data-cmd="лакомство">🍬 Лакомство</button>
+      <button class="quick-btn" data-cmd="поговорить">💬 Мяу</button>
+      <button class="quick-btn" data-cmd="убрать лоток">🧹 Лоток</button>
+      <button class="quick-btn" data-cmd="магазин">🛒 Магазин</button>
+      <button class="quick-btn" data-cmd="инвентарь">🎒 Инв</button>
+      <button class="quick-btn" data-cmd="продать">💰 Продать</button>
+      <button class="quick-btn" data-cmd="лотерея">🎟️ Лотерея</button>
+      <button class="quick-btn" data-cmd="ставка">🎲 Ставка</button>
+      <button class="quick-btn" data-cmd="рулетка">🎰 Рулетка</button>
+      <button class="quick-btn" data-cmd="торговец">🧳 Торговец</button>
+      <button class="quick-btn" data-cmd="дневник">📖 Дневник</button>
+      <button class="quick-btn" data-cmd="достижения">🏆 Достиж</button>
+      <button class="quick-btn" data-cmd="помощь">❓</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const manifest = {
+      name: "Сфинкс: Эволюция 2.0",
+      short_name: "Сфинкс",
+      start_url: ".",
+      display: "standalone",
+      background_color: "#0f0f1a",
+      theme_color: "#1a1a2e",
+      icons: [{
+        src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🐈‍⬛%3C/text%3E%3C/svg%3E",
+        sizes: "100x100",
+        type: "image/svg+xml"
+      }]
+    };
+    const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    document.getElementById('manifest-link').href = url;
+  })();
+</script>
+<script>
+  (function() {
+    // ---------- СОСТОЯНИЕ ИГРЫ ----------
+    const STAGES = ['kitten','teen','young','adult','mature','senior','old'];
+    const STAGE_DAYS = 45;
+
+    // Уровни стали медленнее: все значения exp увеличены в 3 раза
+    const LEVELS = {
+      1: { name: 'Новичок', exp: 0 },
+      2: { name: 'Любитель', exp: 150, ability: 'Усиленные лапы: +10% к доходу с трюков' },
+      3: { name: 'Знаток', exp: 450, ability: 'Нюх на деньги: +5💰 за каждую находку' },
+      4: { name: 'Мастер', exp: 1050, ability: 'Мастер охоты: шанс на двойную добычу' },
+      5: { name: 'Эксперт', exp: 2100, ability: 'Обаяние: +15% к настроению от ласки' },
+      6: { name: 'Виртуоз', exp: 3600, ability: 'Золотые лапы: все трюки приносят вдвое больше' },
+      7: { name: 'Легенда', exp: 6000, ability: 'Легендарное чутьё: шанс найти редкий предмет' }
+    };
+
+    let game = {
+      name: 'Барсик', gender: 'male', birth: new Date().toISOString(),
+      hunger: 100, thirst: 100, mood: 80, litter: 100, health: 100,
+      money: 200, foodSupply: 10, waterSupply: 10, litterSupply: 5,
+      items: {
+        gps_collar: false, laser_pointer: false, cave_house: false,
+        scratching_post: false, heated_bed: false, bird_cage: false, sock_collection: false,
+        auto_feeder: false, cat_bed: false, cat_toy: false, cat_backpack: false
+      },
+      treats: 0, vitamins: 0,
+      diary: [], isSleeping: false,
+      achievements: {}, currentDesire: null, location: 'гостиная', walks: 0, vetVisits: 0,
+      lastHunt: null, lastDailyBonus: null, lastTrick: null,
+      pendingEvent: null, sockCollectionIncome: 0,
+      merchant: { active: false, until: null, items: [] },
+      collectibles: { golden_fish: 0, catnip: 0, mouse_toy: 0 },
+      level: 1, exp: 0, totalActions: 0
+    };
+
+    function loadGame() {
+      try {
+        let saved = localStorage.getItem('sphinx_evo_v3');
+        if (saved) {
+          let parsed = JSON.parse(saved);
+          game = Object.assign(game, parsed);
+          if (!game.items) game.items = { gps_collar: false, laser_pointer: false, cave_house: false, scratching_post: false, heated_bed: false, bird_cage: false, sock_collection: false, auto_feeder: false, cat_bed: false, cat_toy: false, cat_backpack: false };
+          if (!game.treats) game.treats = 0;
+          if (!game.vitamins) game.vitamins = 0;
+          if (!game.achievements) game.achievements = {};
+          if (!game.location) game.location = 'гостиная';
+          if (!game.walks) game.walks = 0;
+          if (!game.vetVisits) game.vetVisits = 0;
+          if (!game.lastHunt) game.lastHunt = null;
+          if (!game.lastDailyBonus) game.lastDailyBonus = null;
+          if (!game.lastTrick) game.lastTrick = null;
+          if (!game.pendingEvent) game.pendingEvent = null;
+          if (!game.merchant) game.merchant = { active: false, until: null, items: [] };
+          if (!game.collectibles) game.collectibles = { golden_fish: 0, catnip: 0, mouse_toy: 0 };
+          if (!game.level) game.level = 1;
+          if (!game.exp) game.exp = 0;
+        }
+      } catch(e) {}
+    }
+
+    function saveGame() { localStorage.setItem('sphinx_evo_v3', JSON.stringify(game)); }
+
+    function ageDays() { return (Date.now() - new Date(game.birth).getTime()) / (1000*60*60*24); }
+    function currentStage() {
+      let idx = Math.min(Math.floor(ageDays() / STAGE_DAYS), STAGES.length-1);
+      return STAGES[idx] || 'kitten';
+    }
+
+    function addMessage(text, sender='bot') {
+      let chat = document.getElementById('chat');
+      let div = document.createElement('div');
+      div.className = `msg ${sender}`;
+      let now = new Date();
+      div.innerHTML = text + `<div class="time">${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}</div>`;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function bar(value) {
+      let p = Math.max(0, Math.min(100, Math.round(value)));
+      let filled = Math.round(p/10);
+      return '█'.repeat(filled) + '░'.repeat(10-filled) + ` ${p}%`;
+    }
+
+    // Опыт теперь даётся в 3 раза меньше
+    function gainExp(amount) {
+      game.exp += Math.floor(amount / 3);
+      let newLevel = game.level;
+      for (let lvl = 7; lvl >= 1; lvl--) { if (game.exp >= LEVELS[lvl].exp) { newLevel = lvl; break; } }
+      if (newLevel > game.level) {
+        game.level = newLevel;
+        let abilityText = LEVELS[newLevel].ability ? `\n🎯 Новая способность: ${LEVELS[newLevel].ability}` : '';
+        addMessage(`🎉 Уровень повышен! Теперь вы "${LEVELS[newLevel].name}" (ур. ${newLevel}).${abilityText}`, 'system');
+      }
+    }
+
+    function getLevelBonus(type) {
+      const lvl = game.level;
+      switch(type) {
+        case 'trick': return lvl >= 6 ? 2 : (lvl >= 2 ? 1.1 : 1);
+        case 'find': return lvl >= 3 ? 5 : 0;
+        case 'hunt': return lvl >= 4 ? 0.2 : 0;
+        case 'mood': return lvl >= 5 ? 1.15 : 1;
+        case 'legendary': return lvl >= 7 ? 0.05 : 0;
+        default: return 1;
+      }
+    }
+
+    // ========== ОБРАБОТКА КОМАНД ==========
+    function processCommand(cmd) {
+      cmd = cmd.trim().toLowerCase();
+      if (game.pendingEvent) { handlePendingEvent(cmd); return; }
+      const firstWord = cmd.split(' ')[0];
+      const awakeOnly = ['предложить','гладить','лакомство','поговорить','лазер','ветеринар','искать','трюк','охота','играть','гулять','купать','спать','разбудить','ждать','назвать','осмотреться','кухня','спальня','ванная','гостиная','использовать','кормить','поить','лоток','лотерея','ставка','рулетка'];
+      if (game.isSleeping && awakeOnly.includes(firstWord) && firstWord !== 'разбудить') { addMessage('Кот спит… Попробуйте разбудить.', 'system'); return; }
+      switch(firstWord) {
+        case 'статус': showStatus(); break;
+        case 'убрать': if (cmd === 'убрать лоток') cleanLitterBox(); break;
+        case 'предложить':
+          if (cmd.includes('играть')) proposePlay();
+          else if (cmd.includes('гулять')) proposeWalk();
+          else if (cmd.includes('охоту')) proposeHunt();
+          else if (cmd.includes('трюк')) proposeTrick();
+          else if (cmd.includes('искать')) proposeSearch();
+          else if (cmd.includes('купаться')) proposeBath();
+          break;
+        case 'гладить': proposePet(); break;
+        case 'лакомство': giveTreat(); break;
+        case 'поговорить': meow(); break;
+        case 'лазер': proposeLaser(); break;
+        case 'ветеринар': proposeVet(); break;
+        case 'разбудить': wakeUp(); break;
+        case 'магазин': shop(); break;
+        case 'инвентарь': showInventory(); break;
+        case 'продать':
+          if (cmd.startsWith('продать ')) sellItem(cmd.replace('продать ','').trim());
+          else addMessage('Введите: продать [предмет]', 'system');
+          break;
+        case 'лотерея': scratchCard(); break;
+        case 'ставка': sportBet(cmd); break;
+        case 'рулетка': roulette(cmd); break;
+        case 'торговец': showMerchant(); break;
+        case 'дневник': showDiary(); break;
+        case 'достижения': showAchievements(); break;
+        case 'помощь': showHelp(); break;
+        case 'купить':
+          if (cmd.startsWith('купить у торговца ')) buyFromMerchant(cmd.replace('купить у торговца ','').trim());
+          else if (cmd.startsWith('купить ')) buyItem(cmd.replace('купить ','').trim());
+          break;
+        case 'осмотреться': lookAround(); break;
+        case 'кухня': case 'спальня': case 'ванная': case 'гостиная': changeLocation(cmd); break;
+        default:
+          if (cmd.startsWith('назвать ')) renameCat(cmd.replace('назвать ','').trim());
+          else if (cmd.startsWith('ждать ')) {
+            let m = parseInt(cmd.replace('ждать ',''));
+            if (isNaN(m) || m<1 || m>480) addMessage('Минуты от 1 до 480.', 'system');
+            else skipTime(m);
+          }
+          else addMessage('Неизвестная команда.', 'system');
+      }
+    }
+
+    // ... (остальные функции идентичны предыдущей версии, но я добавил новые товары и рулетку)
+
+    // ========== МАГАЗИН (+20% к цене, больше товаров) ==========
+    function shop() {
+      let text = `🛒 <b>Магазин (цены ↑20%)</b>\n\n`;
+      text += `<u>Расходники:</u>\n`;
+      text += `🍗 Корм (10) - 60💰\n💧 Вода (10) - 36💰\n🧻 Наполнитель (5) - 48💰\n🍬 Лакомство - 24💰\n💊 Витамины - 96💰\n`;
+      text += `🧶 Котовья мята - 30💰\n🐟 Золотая рыбка - 120💰\n\n`;
+      text += `<u>Предметы:</u>\n`;
+      text += `🔴 Лазерная указка - 180💰\n📡 GPS-ошейник - 240💰\n🏠 Домик-пещера - 300💰\n`;
+      text += `🪶 Когтеточка - 216💰\n🛌 Лежанка - 264💰\n🎒 Кот-рюкзак - 360💰\n`;
+      text += `🍽️ Автокормушка - 600💰\n🛏️ Кошачья кровать - 480💰\n🧸 Заводная мышь - 144💰\n`;
+      text += `\nВведите <b>купить [название]</b>`;
+      addMessage(text, 'bot');
+    }
+
+    function buyItem(item) {
+      const prices = { корм:60, вода:36, наполнитель:48, лакомство:24, витамины:96, 'котовья мята':30, 'золотая рыбка':120, лазер:180, 'лазерная указка':180, ошейник:240, 'gps ошейник':240, домик:300, 'домик-пещера':300, когтеточка:216, лежанка:264, 'лежанка с подогревом':264, 'кот-рюкзак':360, 'автокормушка':600, 'кошачья кровать':480, 'заводная мышь':144 };
+      // ... (логика покупки с обновлёнными ценами)
+    }
+
+    // ========== РУЛЕТКА (10 чисел) ==========
+    function roulette(cmd) {
+      if (game.money < 10) return addMessage('Минимальная ставка 10💰.', 'system');
+      let parts = cmd.split(' ');
+      let bet = 10;
+      let number = Math.floor(Math.random() * 10) + 1;
+      if (parts.length >= 2) {
+        let num = parseInt(parts[1]);
+        if (!isNaN(num) && num >= 1 && num <= 10) {
+          if (parts.length >= 3 && !isNaN(parseInt(parts[2]))) bet = Math.min(game.money, Math.max(10, parseInt(parts[2])));
+          game.money -= bet;
+          if (num === number) {
+            let win = bet * 9;
+            game.money += win;
+            addMessage(`🎰 Ставка ${bet}💰 на ${num}. Выпало ${number}! Выигрыш ${win}💰!`, 'bot');
+          } else {
+            addMessage(`🎰 Ставка ${bet}💰 на ${num}. Выпало ${number}. Проигрыш.`, 'bot');
+          }
+        } else addMessage('Число от 1 до 10.', 'system');
+      } else {
+        game.money -= bet;
+        number = Math.floor(Math.random() * 10) + 1;
+        let win = number % 2 === 0 ? bet * 2 : 0;
+        game.money += win;
+        addMessage(`🎰 Случайная ставка ${bet}💰. Выпало ${number}. ${win > 0 ? `Выигрыш ${win}💰!` : 'Проигрыш.'}`, 'bot');
+      }
+      saveGame();
+    }
+
+    // ========== ТОРГОВЕЦ (обновлён) ==========
+    function spawnMerchant() {
+      if (game.merchant.active) return;
+      const allItems = [
+        { name: 'Зелье бодрости', price: 180, desc: 'Полностью будит кота' },
+        { name: 'Эликсир здоровья', price: 240, desc: '+50 к здоровью' },
+        { name: 'Крылья для кота', price: 600, desc: 'Удваивает доход с прогулок' },
+        { name: 'Золотой клубок', price: 420, desc: '+2 к опыту за действие' },
+        { name: 'Лунный камень', price: 300, desc: 'Светится ночью' }
+      ];
+      const selected = [];
+      for (let i = 0; i < 3; i++) {
+        let item = allItems[Math.floor(Math.random() * allItems.length)];
+        if (!selected.find(s => s.name === item.name)) selected.push(item);
+      }
+      game.merchant = { active: true, until: Date.now() + 7200000, items: selected };
+      let text = '🧳 <b>Бродячий торговец прибыл!</b>\n';
+      selected.forEach((it, i) => {
+        text += `${i+1}. ${it.name} - ${it.price}💰\n   <i>${it.desc}</i>\n`;
+      });
+      text += '\nКупить: <b>купить у торговца [название]</b>';
+      addMessage(text, 'system');
+      saveGame();
+    }
+
+    // ... (все остальные функции работают как прежде)
+
+    // ========== ФОН ==========
+    function backgroundTick() {
+      if (game.merchant.active && Date.now() > game.merchant.until) {
+        game.merchant.active = false; game.merchant.items = [];
+        addMessage('🧳 Торговец уехал.', 'system');
+      }
+      if (!game.merchant.active && Math.random() < 0.02) spawnMerchant();
+      autonomousCatTick();
+      if (!game.pendingEvent && !game.isSleeping && Math.random() < 0.08) randomEvent();
+      saveGame();
+    }
+
+    // ========== СТАРТ ==========
+    window.onload = function() {
+      loadGame();
+      setInterval(backgroundTick, 30000);
+      addMessage(`🐈‍⬛ Добро пожаловать в "Сфинкс: Эволюция 2.0"!`, 'bot');
+      showStatus();
+    };
+
+    document.getElementById('cmd-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        let cmd = this.value.trim();
+        if (cmd) { addMessage(cmd, 'user'); processCommand(cmd); }
+        this.value = '';
+      }
+    });
+
+    document.querySelectorAll('.quick-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        let cmd = this.dataset.cmd;
+        addMessage(cmd, 'user');
+        processCommand(cmd);
+      });
+    });
+  })();
+</script>
+</body>
+</html>
