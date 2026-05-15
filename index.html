@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Сфинкс: Эволюция 2.0</title>
+  <meta name="theme-color" content="#1a1a2e">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0f0f1a; font-family: 'Segoe UI', system-ui, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    #app { width: 100%; max-width: 450px; height: 100vh; display: flex; flex-direction: column; background: #1a1a2e; box-shadow: 0 0 20px #000; }
+    #header { background: #16213e; padding: 12px; text-align: center; color: #e94560; font-weight: bold; font-size: 1.2em; border-bottom: 2px solid #e94560; }
+
+    /* Панель статуса */
+    #status-panel {
+      background: #0f0f1a;
+      padding: 8px 12px;
+      border-bottom: 1px solid #2a2a4a;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 13px;
+    }
+    .stat-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .stat-label { width: 36px; color: #ccc; font-weight: bold; }
+    .stat-bar { flex: 1; height: 12px; background: #2a2a4a; border-radius: 6px; overflow: hidden; }
+    .stat-fill { height: 100%; width: 100%; background: #e94560; border-radius: 6px; transition: width 0.2s; }
+    .stat-value { width: 40px; text-align: right; color: #e94560; font-family: monospace; }
+    .compact-stats {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .compact-item {
+      background: #2a2a4a;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      color: #ddd;
+    }
+    #chat { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+    .msg { max-width: 85%; padding: 8px 12px; border-radius: 14px; line-height: 1.4; word-wrap: break-word; animation: fadeIn 0.2s; }
+    .msg.bot { background: #2d2d5e; color: #ddd; align-self: flex-start; border-bottom-left-radius: 2px; }
+    .msg.user { background: #e94560; color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+    .msg.system { background: #4a3b5c; color: #ffb347; align-self: center; font-style: italic; font-size: 0.9em; max-width: 90%; }
+    .time { font-size: 0.7em; color: #aaa; margin-top: 2px; text-align: right; }
+    .msg.bot .time { text-align: left; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    #input-area { display: flex; flex-direction: column; padding: 8px; background: #0f0f1a; border-top: 1px solid #333; gap: 8px; }
+    #cmd-row { display: flex; gap: 8px; }
+    #cmd-input { flex: 1; background: #2a2a4a; border: none; padding: 12px; border-radius: 24px; color: white; font-size: 14px; outline: none; }
+    .row-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .quick-btn {
+      background: #3a3a6a;
+      border: none;
+      color: #eee;
+      padding: 10px 14px;
+      border-radius: 28px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: 0.2s;
+      min-width: 80px;
+      white-space: nowrap;
+    }
+    .quick-btn:active { background: #e94560; color: white; transform: scale(0.96); }
+    @media (max-width: 450px) {
+      .quick-btn { padding: 8px 12px; font-size: 12px; min-width: 70px; }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="header">🐈‍⬛ СФИНКС • ЭВОЛЮЦИЯ 2.0</div>
+
+  <div id="status-panel">
+    <div class="stat-row"><span class="stat-label">🍗</span><div class="stat-bar"><div class="stat-fill" id="hunger-fill" style="width:100%"></div></div><span class="stat-value" id="hunger-val">100%</span></div>
+    <div class="stat-row"><span class="stat-label">💧</span><div class="stat-bar"><div class="stat-fill" id="thirst-fill" style="width:100%"></div></div><span class="stat-value" id="thirst-val">100%</span></div>
+    <div class="stat-row"><span class="stat-label">😊</span><div class="stat-bar"><div class="stat-fill" id="mood-fill" style="width:80%"></div></div><span class="stat-value" id="mood-val">80%</span></div>
+    <div class="stat-row"><span class="stat-label">🚽</span><div class="stat-bar"><div class="stat-fill" id="litter-fill" style="width:100%"></div></div><span class="stat-value" id="litter-val">100%</span></div>
+    <div class="stat-row"><span class="stat-label">❤️</span><div class="stat-bar"><div class="stat-fill" id="health-fill" style="width:100%"></div></div><span class="stat-value" id="health-val">100%</span></div>
+    <div class="compact-stats">
+      <span class="compact-item">💰 <span id="money-display">300</span></span>
+      <span class="compact-item">🍽️ <span id="food-display">10</span></span>
+      <span class="compact-item">💧 <span id="water-display">10</span></span>
+      <span class="compact-item">🧻 <span id="litterSupply-display">5</span></span>
+      <span class="compact-item">⭐ Ур.<span id="level-display">1</span></span>
+    </div>
+  </div>
+
+  <div id="chat"></div>
+  <div id="input-area">
+    <div id="cmd-row"><input type="text" id="cmd-input" placeholder="Команда..." autofocus></div>
+    <div class="row-buttons">
+      <button class="quick-btn" data-cmd="статус">📋 Статус</button>
+      <button class="quick-btn" data-cmd="предложить играть">🎮 Игра</button>
+      <button class="quick-btn" data-cmd="гладить">🤚 Гладить</button>
+      <button class="quick-btn" data-cmd="предложить гулять">🚶 Гулять</button>
+      <button class="quick-btn" data-cmd="предложить охоту">🐭 Охота</button>
+      <button class="quick-btn" data-cmd="предложить трюк">🐾 Трюк</button>
+      <button class="quick-btn" data-cmd="лазер">🔴 Лазер</button>
+      <button class="quick-btn" data-cmd="предложить искать">🔍 Искать</button>
+      <button class="quick-btn" data-cmd="ветеринар">🏥 Вет</button>
+      <button class="quick-btn" data-cmd="предложить купаться">🛁 Купать</button>
+      <button class="quick-btn" data-cmd="лакомство">🍬 Лакомство</button>
+      <button class="quick-btn" data-cmd="поговорить">💬 Мяу</button>
+      <button class="quick-btn" data-cmd="убрать лоток">🧹 Лоток</button>
+      <button class="quick-btn" data-cmd="магазин">🛒 Магазин</button>
+      <button class="quick-btn" data-cmd="инвентарь">🎒 Инв</button>
+      <button class="quick-btn" data-cmd="продать">💰 Продать</button>
+      <button class="quick-btn" data-cmd="лотерея">🎟️ Лотерея</button>
+      <button class="quick-btn" data-cmd="ставка 20">🎲 Ставка</button>
+      <button class="quick-btn" data-cmd="рулетка 5 20">🎰 Рулетка</button>
+      <button class="quick-btn" data-cmd="торговец">🧳 Торговец</button>
+      <button class="quick-btn" data-cmd="дневник">📖 Дневник</button>
+      <button class="quick-btn" data-cmd="достижения">🏆 Достиж</button>
+      <button class="quick-btn" data-cmd="помощь">❓</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    // ----- СОСТОЯНИЕ ИГРЫ -----
+    const STAGES = ['kitten','teen','young','adult','mature','senior','old'];
+    const STAGE_DAYS = 45;
+    const LEVELS = {
+      1: { name: 'Новичок', exp: 0 },
+      2: { name: 'Любитель', exp: 150, ability: '+10% к трюкам' },
+      3: { name: 'Знаток', exp: 450, ability: '+5💰 за находку' },
+      4: { name: 'Мастер', exp: 1050, ability: 'Шанс на двойную добычу' },
+      5: { name: 'Эксперт', exp: 2100, ability: '+15% настроения от ласки' },
+      6: { name: 'Виртуоз', exp: 3600, ability: 'Трюки приносят вдвое больше' },
+      7: { name: 'Легенда', exp: 6000, ability: 'Шанс найти редкий предмет' }
+    };
+
+    let game = {
+      name: 'Барсик', gender: 'male', birth: new Date().toISOString(),
+      hunger: 100, thirst: 100, mood: 80, litter: 100, health: 100,
+      money: 300, foodSupply: 10, waterSupply: 10, litterSupply: 5,
+      items: { 
+        gps_collar: false, laser_pointer: false, cave_house: false, scratching_post: false, 
+        heated_bed: false, bird_cage: false, sock_collection: false, auto_feeder: false, 
+        cat_bed: false, cat_toy: false, cat_backpack: false, golden_ball: false, 
+        health_elixir: false, cat_wings: false 
+      },
+      treats: 0, vitamins: 0, catnip: 0,
+      diary: [], isSleeping: false,
+      achievements: {}, currentDesire: null, location: 'гостиная', walks: 0, vetVisits: 0,
+      lastHunt: null, pendingEvent: null,
+      merchant: { active: false, until: null, items: [] },
+      collectibles: { golden_fish: 0, mouse_toy: 0 },
+      level: 1, exp: 0, totalActions: 0,
+      lastToiletTime: null
+    };
+
+    // Маппинг предметов для отображения
+    const itemNames = {
+      gps_collar: 'GPS-ошейник', laser_pointer: 'Лазер', cave_house: 'Домик-пещера',
+      scratching_post: 'Когтеточка', heated_bed: 'Лежанка', bird_cage: 'Птичка в клетке',
+      sock_collection: 'Коллекция носков', auto_feeder: 'Автокормушка', cat_bed: 'Кровать',
+      cat_toy: 'Заводная мышь', cat_backpack: 'Кот-рюкзак', golden_ball: 'Золотой клубок',
+      health_elixir: 'Эликсир здоровья', cat_wings: 'Крылья для кота'
+    };
+
+    function loadGame() {
+      try {
+        let saved = localStorage.getItem('sphinx_evo_v9');
+        if (saved) {
+          let parsed = JSON.parse(saved);
+          Object.assign(game, parsed);
+          if (!game.items) game.items = {};
+          if (!game.diary) game.diary = [];
+          if (!game.merchant) game.merchant = { active: false, until: null, items: [] };
+          if (!game.collectibles) game.collectibles = { golden_fish: 0, mouse_toy: 0 };
+          game.treats = game.treats || 0;
+          game.vitamins = game.vitamins || 0;
+          game.catnip = game.catnip || 0;
+          game.walks = game.walks || 0;
+          game.vetVisits = game.vetVisits || 0;
+          game.level = game.level || 1;
+          game.exp = game.exp || 0;
+        }
+      } catch(e) { console.warn(e); }
+    }
+    function saveGame() { localStorage.setItem('sphinx_evo_v9', JSON.stringify(game)); updateStatusPanel(); }
+
+    function updateStatusPanel() {
+      document.getElementById('hunger-fill').style.width = Math.max(0, game.hunger) + '%';
+      document.getElementById('hunger-val').innerText = Math.floor(game.hunger) + '%';
+      document.getElementById('thirst-fill').style.width = Math.max(0, game.thirst) + '%';
+      document.getElementById('thirst-val').innerText = Math.floor(game.thirst) + '%';
+      document.getElementById('mood-fill').style.width = Math.max(0, game.mood) + '%';
+      document.getElementById('mood-val').innerText = Math.floor(game.mood) + '%';
+      document.getElementById('litter-fill').style.width = Math.max(0, game.litter) + '%';
+      document.getElementById('litter-val').innerText = Math.floor(game.litter) + '%';
+      document.getElementById('health-fill').style.width = Math.max(0, game.health) + '%';
+      document.getElementById('health-val').innerText = Math.floor(game.health) + '%';
+      document.getElementById('money-display').innerText = game.money;
+      document.getElementById('food-display').innerText = game.foodSupply;
+      document.getElementById('water-display').innerText = game.waterSupply;
+      document.getElementById('litterSupply-display').innerText = game.litterSupply;
+      document.getElementById('level-display').innerText = game.level;
+    }
+
+    function addMessage(text, sender='bot') {
+      let chat = document.getElementById('chat');
+      if (!chat) return;
+      let div = document.createElement('div');
+      div.className = `msg ${sender}`;
+      let now = new Date();
+      div.innerHTML = text + `<div class="time">${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}</div>`;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function bar(value) {
+      let p = Math.max(0, Math.min(100, Math.round(value)));
+      let filled = Math.round(p/10);
+      return '█'.repeat(filled) + '░'.repeat(10-filled) + ` ${p}%`;
+    }
+
+    function gainExp(amount) {
+      game.exp += Math.floor(amount / 3);
+      let newLevel = game.level;
+      for (let lvl = 7; lvl >= 1; lvl--) {
+        if (game.exp >= LEVELS[lvl].exp) { newLevel = lvl; break; }
+      }
+      if (newLevel > game.level) {
+        game.level = newLevel;
+        let abilityText = LEVELS[newLevel].ability ? `\n🎯 ${LEVELS[newLevel].ability}` : '';
+        addMessage(`🎉 Уровень ${newLevel}: "${LEVELS[newLevel].name}"!${abilityText}`, 'system');
+        game.diary.push({time: new Date().toISOString(), text: `Достигнут уровень ${newLevel}.`});
+        saveGame();
+      }
+    }
+
+    function getLevelBonus(type) {
+      const lvl = game.level;
+      switch(type) {
+        case 'trick': return lvl >= 6 ? 2 : (lvl >= 2 ? 1.1 : 1);
+        case 'find': return lvl >= 3 ? 5 : 0;
+        case 'hunt': return lvl >= 4 ? 0.2 : 0;
+        case 'mood': return lvl >= 5 ? 1.15 : 1;
+        default: return 1;
+      }
+    }
+
+    // ----- МАССИВЫ СООБЩЕНИЙ (по 5+ вариантов) -----
+    const playMessages = [
+      '🎾 Вы кинули мячик, кот принёс его обратно!', '🐈 Кот гоняется за ленточкой и кувыркается.',
+      '📦 Кот залез в пустую коробку и выглядывает оттуда.', '🧶 Вы играете с котом в прятки — он вас нашёл!',
+      '🪶 Перьевая игрушка — кот подпрыгивает выше головы.', '🐭 Заводная мышь убегает, кот за ней по всей комнате.'
+    ];
+    const petMessages = [
+      '🤚 Кот мурчит как трактор, подставляя спинку.', '😌 Вы чешете за ушком — кот жмурится от удовольствия.',
+      '❤️ Кот трётся головой о вашу руку.', '😴 Кот ложится на колени и начинает мять вас лапками.',
+      '🐱 Вы гладите пузико — кот довольно выгибается.', '🥰 Кот медленно моргает — это кошачье «я тебя люблю».'
+    ];
+    const walkMessages = [
+      '🚶‍♂️ Кот гуляет на поводке, обнюхивает каждый кустик.', '🌳 Во дворе встретили собаку, но кот храбро прошёл мимо.',
+      '🍂 Кот катается по листьям и ловит бабочек.', '🏙️ Прогулка по району — кот обновил свои метки.',
+      '🐦 Кот выследил голубя, но не поймал.', '🦮 Дружелюбная соседская кошка — ваш кот показывает характер.'
+    ];
+    const huntMessages = [
+      '🐭 Кот принёс дохлую мышь! (Вы тайком выбросили).', '🐦 Поймал воробья, но отпустил — гордый.',
+      '🦎 Заметил ящерицу — та успела скрыться.', '🦟 Кот охотился на муху целый час и поймал!',
+      '🐜 Нашёл муравейник, но только понюхал.', '🐀 Поймал крысу — вы наградили кота лакомством.'
+    ];
+    const trickMessages = [
+      '🖐️ Кот дал лапу!', '🔄 Крутится вокруг себя по команде.', '🦸‍♂️ Кот встал на задние лапы.',
+      '🐾 Принёс игрушку в зубах.', '🙀 Перекат через спину (почти получилось).', '🎶 Кот «поёт» под вашу команду.'
+    ];
+    const searchMessages = [
+      '🔍 Кот нашёл завалявшуюся монету под диваном.', '🧦 Притащил потерянный носок.', '📱 Нашёл пульт от телевизора!',
+      '🍬 Обнаружил забытую конфету (вы её забрали).', '🎁 Нашёл блестящую фольгу — счастлив.', '🗝️ Вытащил ключи, которые вы искали.'
+    ];
+    const bathMessages = [
+      '🛁 Кот терпит купание, но фырчит.', '💦 Вы искупали кота — он чистый и пахнет шампунем.',
+      '🧼 Кот вырвался и обрызгал всю ванную.', '🌊 Сфинкс любит тёплую воду — наслаждается процедурой.',
+      '🐾 После купания кот бегает и вытирается об ковёр.', '😾 Не самое любимое занятие, но вы справились.'
+    ];
+    const laserMessages = [
+      '🔴 Красная точка мечется по стене, кот в атаке!', '⚡ Кот спит? Нет, он уже бежит за лазером.',
+      '🎯 Точка исчезла — кот озадачен и ищет её.', '🐱 Кот запрыгнул на шкаф за лазером!',
+      '🌀 Вы устроили настоящую погоню — кот доволен.', '🔦 Лазер устал, а кот нет — продолжайте веселье.'
+    ];
+    const vetMessages = [
+      '🏥 Ветеринар сказал, что кот здоров.', '💉 Сделали прививку — кот немного обиделся.',
+      '🩺 Врач почистил уши и подстриг когти.', '📋 Полный осмотр: сердце, зубы, вес — отлично.',
+      '💊 Прописали витамины, здоровье улучшилось.', '😺 Кот вел себя храбро, получил лакомство от врача.'
+    ];
+    const treatMessages = [
+      '🍬 Кот с удовольствием съел лакомство и просит добавки.', '🍖 Вы дали кусочек курицы — кот доволен.',
+      '🧀 Кот обожает сыр — съел и мурчит.', '🐟 Рыбный вкус — кот вылизывает тарелку.',
+      '🍗 Лакомство съедено, кот счастлив и трётся о ноги.', '🥫 Открыли баночку паштета — кот в восторге.'
+    ];
+    const meowMessages = [
+      'Мяу!', 'Мр-ряу!', 'Мя?', 'Муррр...', 'Р-р-мяу!', 'Мяуууу! (очень громко)'
+    ];
+    const cleanMessages = [
+      '🧹 Лоток сверкает чистотой, кот одобряет.', '🚽 Новый наполнитель — кот сразу оценил.',
+      '🧼 Вы помыли лоток, запаха больше нет.', '✨ Кот наблюдал за уборкой, потом сам зарылся в свежий наполнитель.',
+      '♻️ Вы заменили наполнитель, кот благодарен.'
+    ];
+    const wakeMessages = [
+      '🐱 Кот открыл глаза, потянулся и зевнул.', '😴 Ещё немного и кот бы проспал обед.',
+      '🌞 Кот проснулся и сразу пошёл к миске.', '🧡 Разбуженный кот трётся о вас — не злится.'
+    ];
+
+    // Автономные сообщения еда/питьё/туалет (оставлены из предыдущей версии)
+    const eatMessages = [
+      '🍗 Кот с аппетитом поел корма. Теперь он сытый и довольно мурчит.',
+      '🥣 Кот уминает корм за обе щеки, поглядывая на вас благодарно.',
+      '🍽️ Мисочка опустела. Кот вылизывает губы и трётся о ноги.',
+      '🐟 Кот съел всё до крошки, урчит как моторчик.',
+      '🍲 Кот насытился, теперь он важный и довольный.'
+    ];
+    const drinkMessages = [
+      '💧 Кот лакает воду, немного расплескав вокруг — мокрые следы.',
+      '🥛 Попил водички, оставил мокрый носик и лужицу.',
+      '🚰 Кот жадно пьёт, иногда чихая от усердия.',
+      '💦 Кот попил и теперь довольно умывается лапой.',
+      '🌊 Кот попил и разбрызгал воду — настоящий фонтанчик.'
+    ];
+    const toiletMessages = [
+      '💩 Кот сходил в лоток и раскидал вокруг наполнитель. Пора убирать.',
+      '🚽 Кот посетил туалет, вокруг лотка хаос.',
+      '🧹 Сфинкс справил нужду и с невинным видом отошёл, оставив беспорядок.',
+      '🐾 Кот закопал дела, но наполнитель разлетелся.',
+      '💨 В лотке неаккуратно — кот явно спешил.',
+      '😼 Кот посмотрел и демонстративно сходил в лоток, оставив «сюрприз».'
+    ];
+
+    // ----- АВТОНОМНЫЙ ТИК -----
+    function autonomousCatTick() {
+      if (game.pendingEvent) return;
+      if (game.isSleeping) {
+        game.hunger = Math.max(0, game.hunger - 0.2);
+        if (Math.random() < 0.3) {
+          game.isSleeping = false;
+          game.mood = Math.min(100, game.mood + 10);
+          addMessage(randomOf(wakeMessages), 'bot');
+          saveGame();
+        }
+        return;
+      }
+
+      if (game.hunger < 40 && game.foodSupply > 0) {
+        game.foodSupply--;
+        game.hunger = Math.min(100, game.hunger + 35);
+        addMessage(randomOf(eatMessages), 'bot');
+        game.currentDesire = null;
+        gainExp(5);
+        saveGame();
+        return;
+      }
+
+      if (game.thirst < 40 && game.waterSupply > 0) {
+        game.waterSupply--;
+        game.thirst = Math.min(100, game.thirst + 35);
+        addMessage(randomOf(drinkMessages), 'bot');
+        game.currentDesire = null;
+        gainExp(5);
+        saveGame();
+        return;
+      }
+
+      if (game.litter < 25 && game.litterSupply > 0 && game.currentDesire !== 'чистый лоток') {
+        game.currentDesire = 'чистый лоток';
+        addMessage('Кот мяукает у лотка, ему некомфортно.', 'system');
+        saveGame();
+        return;
+      }
+
+      const now = Date.now();
+      const toiletCooldown = 120000;
+      if (!game.lastToiletTime || (now - game.lastToiletTime) > toiletCooldown) {
+        if (Math.random() < 0.04) {
+          addMessage(randomOf(toiletMessages), 'bot');
+          let dirt = Math.floor(Math.random() * 8) + 5;
+          game.litter = Math.max(0, game.litter - dirt);
+          game.lastToiletTime = now;
+          if (game.litter < 20) game.mood = Math.max(0, game.mood - 5);
+          saveGame();
+          return;
+        }
+      }
+
+      game.hunger = Math.max(0, game.hunger - 0.3);
+      game.thirst = Math.max(0, game.thirst - 0.4);
+      game.litter = Math.max(0, game.litter - 0.3);
+
+      if (game.mood < 50) {
+        game.mood = Math.min(100, game.mood + 10);
+        addMessage('Кот играет сам с собой, гоняя воображаемую мышь.', 'bot');
+        gainExp(5);
+      }
+      saveGame();
+    }
+
+    function randomOf(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+    // ----- ДЕЙСТВИЯ С РАЗНЫМИ СООБЩЕНИЯМИ -----
+    function showStatus() {
+      let desireText = game.currentDesire ? `\n💭 Хочет: ${game.currentDesire}` : '';
+      let nextExp = (game.level < 7) ? LEVELS[game.level+1].exp : 'MAX';
+      let levelInfo = `\n⭐ Ур. ${game.level} (${LEVELS[game.level].name}) | Опыт: ${game.exp}/${nextExp}`;
+      let abilityText = LEVELS[game.level].ability ? `\n🎯 ${LEVELS[game.level].ability}` : '';
+      let msg = `🐈‍⬛ <b>${game.name}</b> (${currentStage()})${levelInfo}${abilityText}\n\n`;
+      msg += `🍗 Сытость: ${bar(game.hunger)}\n💧 Жажда: ${bar(game.thirst)}\n😊 Настроение: ${bar(game.mood)}\n🚽 Лоток: ${bar(game.litter)}\n❤️ Здоровье: ${bar(game.health)}\n`;
+      msg += `💰 Монеты: ${game.money}\n📦 Корм: ${game.foodSupply} 💧 Вода: ${game.waterSupply} 🧻 Наполнитель: ${game.litterSupply}\n🍬 Лакомств: ${game.treats} 💊 Витаминов: ${game.vitamins}\n📍 ${game.location}${desireText}`;
+      if (game.isSleeping) msg += '\n😴 Кот спит.';
+      addMessage(msg, 'bot');
+    }
+
+    function proposePlay() { if (game.isSleeping) return; game.mood = Math.min(100, game.mood + 15); addMessage(randomOf(playMessages), 'bot'); gainExp(15); saveGame(); }
+    function proposePet() { if (game.isSleeping) return; let bonus = Math.floor(12 * getLevelBonus('mood')); game.mood = Math.min(100, game.mood + bonus); addMessage(randomOf(petMessages), 'bot'); gainExp(5); saveGame(); }
+    function proposeWalk() { if (!game.items.gps_collar) return addMessage('Нужен GPS-ошейник.', 'system'); if (game.isSleeping) return; game.mood = Math.min(100, game.mood + 15); game.walks++; let reward = Math.floor(Math.random()*20)+5 + getLevelBonus('find'); if (game.items.cat_wings) reward *= 2; game.money += reward; addMessage(randomOf(walkMessages) + ` +${reward}💰`, 'bot'); gainExp(15); saveGame(); }
+    function proposeHunt() { if (game.isSleeping) return; if (game.lastHunt && (Date.now() - new Date(game.lastHunt).getTime()) < 3600000) return addMessage('Охота раз в час.', 'system'); game.lastHunt = new Date().toISOString(); let ok = Math.random() < 0.7 + getLevelBonus('hunt'); let reward = ok ? Math.floor(Math.random()*40)+10 : 0; game.money += reward; addMessage(randomOf(huntMessages) + (ok ? ` +${reward}💰` : ''), 'bot'); gainExp(ok ? 20 : 5); saveGame(); }
+    function proposeTrick() { if (game.isSleeping) return; if (Math.random() < 0.6) { let r = Math.floor((Math.floor(Math.random()*15)+5) * getLevelBonus('trick')); game.money += r; addMessage(randomOf(trickMessages) + ` +${r}💰`, 'bot'); } else addMessage('Кот не понимает, чего вы хотите.', 'bot'); gainExp(10); saveGame(); }
+    function proposeSearch() { if (game.isSleeping) return; if (Math.random() < 0.5) { let r = Math.floor(Math.random()*15)+3 + getLevelBonus('find'); game.money += r; addMessage(randomOf(searchMessages) + ` +${r}💰`, 'bot'); } else addMessage('Ничего не найдено.', 'bot'); gainExp(10); saveGame(); }
+    function proposeBath() { if (game.isSleeping) return; if (Math.random() < 0.6) return addMessage('Кот вырывается и царапается.', 'bot'); game.mood = Math.min(100, game.mood + (Math.random() > 0.4 ? 10 : -5)); addMessage(randomOf(bathMessages), 'bot'); gainExp(5); saveGame(); }
+    function proposeLaser() { if (!game.items.laser_pointer) return addMessage('Нет лазера.', 'system'); game.mood = Math.min(100, game.mood + 15); addMessage(randomOf(laserMessages), 'bot'); gainExp(5); saveGame(); }
+    function proposeVet() { if (game.money < 60) return addMessage('Нужно 60💰.', 'system'); game.money -= 60; game.health = 100; game.vetVisits++; game.mood = Math.min(100, game.mood + 20); addMessage(randomOf(vetMessages), 'bot'); gainExp(20); saveGame(); }
+    function giveTreat() { if (game.treats <= 0) return addMessage('Нет лакомств.', 'system'); game.treats--; game.mood = Math.min(100, game.mood + 20); addMessage(randomOf(treatMessages), 'bot'); gainExp(10); saveGame(); }
+    function meow() { addMessage(randomOf(meowMessages), 'bot'); gainExp(2); saveGame(); }
+    function cleanLitterBox() { if (game.litterSupply <= 0) return addMessage('Нет наполнителя.', 'system'); game.litterSupply--; game.litter = 100; game.mood = Math.min(100, game.mood + 15); if (game.currentDesire === 'чистый лоток') { game.money += 10; addMessage('+10💰 за желание.', 'system'); } game.currentDesire = null; addMessage(randomOf(cleanMessages), 'bot'); gainExp(5); saveGame(); }
+    function wakeUp() { if (!game.isSleeping) return; game.isSleeping = false; addMessage(randomOf(wakeMessages), 'bot'); saveGame(); }
+    function lookAround() { addMessage(`Вы находитесь в ${game.location}.`, 'bot'); }
+    function changeLocation(loc) { game.location = loc; addMessage(`Вы перешли в ${loc}.`, 'system'); saveGame(); }
+    function renameCat(name) { if(name.length>20) return; game.name = name; addMessage(`Теперь кота зовут ${name}.`, 'system'); saveGame(); }
+
+    // ----- МАГАЗИН, ИНВЕНТАРЬ, ПРОДАЖА -----
+    function shop() { addMessage('🛒 Магазин: корм (60💰/10шт), вода (36💰), наполнитель (48💰/5шт), лакомство (24💰), витамины (96💰), мята (30💰), лазер (180💰), ошейник (240💰), домик (300💰). Купить: купить [товар]', 'bot'); }
+    function buyItem(item) {
+      const prices = { 'корм':60, 'вода':36, 'наполнитель':48, 'лакомство':24, 'витамины':96, 'мята':30, 'лазер':180, 'ошейник':240, 'домик':300 };
+      if (!prices[item]) return addMessage('Товар не найден.', 'system');
+      if (game.money < prices[item]) return addMessage('Не хватает монет.', 'system');
+      game.money -= prices[item];
+      if (item === 'корм') game.foodSupply += 10;
+      else if (item === 'вода') game.waterSupply += 10;
+      else if (item === 'наполнитель') game.litterSupply += 5;
+      else if (item === 'лакомство') game.treats++;
+      else if (item === 'витамины') game.vitamins++;
+      else if (item === 'мята') game.catnip++;
+      else if (item === 'лазер') game.items.laser_pointer = true;
+      else if (item === 'ошейник') game.items.gps_collar = true;
+      else if (item === 'домик') game.items.cave_house = true;
+      addMessage(`Куплено: ${item}.`, 'system');
+      saveGame();
+    }
+
+    function showInventory() {
+      let owned = [];
+      for (let [key, val] of Object.entries(game.items)) {
+        if (val && itemNames[key]) owned.push(itemNames[key]);
+      }
+      let itemsText = owned.length ? owned.join(', ') : 'пусто';
+      addMessage(`🎒 Инвентарь:\n${itemsText}\n🍬 Лакомств: ${game.treats} 💊 Витаминов: ${game.vitamins} 🧶 Мяты: ${game.catnip}\n🐟 Золотых рыбок: ${game.collectibles.golden_fish}\n\nПродать: продать [предмет] (например, птичка, носки)`, 'bot');
+    }
+
+    function sellItem(item) {
+      const sellPrices = { 'птичка': 80, 'носки': 50, 'золотой клубок': 210, 'эликсир здоровья': 120, 'крылья': 300 };
+      let key = null;
+      if (item.includes('птич')) key = 'bird_cage';
+      else if (item.includes('нос')) key = 'sock_collection';
+      else if (item.includes('клубок')) key = 'golden_ball';
+      else if (item.includes('эликсир')) key = 'health_elixir';
+      else if (item.includes('крыл')) key = 'cat_wings';
+      if (!key || !game.items[key]) return addMessage('У вас нет такого предмета для продажи.', 'system');
+      let price = sellPrices[item] || 50;
+      game.items[key] = false;
+      game.money += price;
+      addMessage(`Продано за ${price}💰.`, 'system');
+      saveGame();
+    }
+
+    // ----- ЛОТЕРЕЯ, СТАВКИ, РУЛЕТКА -----
+    function scratchCard() { if (game.money < 12) return addMessage('Нужно 12💰.'); game.money -= 12; let win = Math.random()<0.1?60:(Math.random()<0.3?24:(Math.random()<0.7?6:0)); game.money += win; addMessage(`🎟️ Лотерея: выигрыш ${win}💰`, 'bot'); gainExp(5); saveGame(); }
+    function sportBet(cmd) { let parts = cmd.split(' '); let bet = (parts[1] && !isNaN(parseInt(parts[1]))) ? parseInt(parts[1]) : 20; if (bet < 10) bet = 20; if (game.money < bet) return addMessage('Мало денег'); game.money -= bet; let win = Math.random() < 0.4; if (win) { let prize = Math.floor(bet * 1.8); game.money += prize; addMessage(`⚽ Ставка ${bet}💰 выиграла! Получено ${prize}💰`, 'bot'); } else addMessage(`⚽ Ставка ${bet}💰 проиграна.`, 'bot'); gainExp(8); saveGame(); }
+    function roulette(cmd) { let parts = cmd.split(' '); let bet = 20; if (parts[1] && !isNaN(parseInt(parts[1]))) bet = parseInt(parts[1]); if (bet < 10) bet = 20; if (game.money < bet) return; game.money -= bet; let res = Math.floor(Math.random()*10)+1; let win = (res % 2 === 0); if (win) { let prize = bet * 2; game.money += prize; addMessage(`🎰 Выпало ${res} (чёт). Выигрыш ${prize}💰`, 'bot'); } else addMessage(`🎰 Выпало ${res} (нечёт). Проигрыш.`, 'bot'); saveGame(); }
+
+    // ----- ТОРГОВЕЦ И СОБЫТИЯ -----
+    function spawnMerchant() { if (game.merchant.active) return; game.merchant = { active: true, until: Date.now()+7200000, items: [{name:'Зелье бодрости',price:180}] }; addMessage('🧳 Торговец прибыл! Используйте "торговец" для просмотра.', 'system'); saveGame(); }
+    function showMerchant() { if (!game.merchant.active) addMessage('Торговца нет.'); else addMessage('Торговец предлагает: Зелье бодрости (180💰) — будит кота. Купить: купить у торговца зелье бодрости', 'bot'); }
+    function buyFromMerchant(item) { if (!game.merchant.active) return; if (item === 'зелье бодрости' && game.money >= 180) { game.money -= 180; game.isSleeping = false; addMessage('Кот проснулся!', 'bot'); saveGame(); } else addMessage('Недостаточно денег или нет товара.'); }
+    function useItem(item) { if (item === 'лакомство') giveTreat(); else if (item === 'витамины' && game.vitamins > 0) { game.vitamins--; game.health = Math.min(100, game.health+25); addMessage('Витамины приняты, здоровье +25.'); saveGame(); } else addMessage('Нельзя использовать.'); }
+    function showDiary() { if (!game.diary.length) addMessage('Дневник пуст.'); else addMessage('📖 ' + game.diary.slice(-5).map(e=>e.text).join(' | '), 'bot'); }
+    function showAchievements() { addMessage('🏆 Достижения: Исследователь (5 прогулок), Ветеринар (1 визит), Охотник (3 удачи).', 'bot'); }
+    function skipTime(min) { for(let i=0;i<Math.floor(min/5);i++){ game.hunger=Math.max(0,game.hunger-0.8); game.thirst=Math.max(0,game.thirst-0.6); game.litter=Math.max(0,game.litter-0.3); } addMessage(`⏳ Пропущено ${min} минут.`, 'system'); saveGame(); }
+    function showHelp() { addMessage('Команды: статус, предложить играть/гулять/охоту/трюк/искать/купаться, гладить, лакомство, поговорить, лазер, ветеринар, убрать лоток, разбудить, магазин, инвентарь, лотерея, ставка [сумма], рулетка [число] [ставка], торговец, дневник, достижения, помощь, купить [товар], использовать [предмет], осмотреться, кухня/спальня/ванная/гостиная, ждать [мин], назвать [имя]', 'bot'); }
+
+    // ----- СЛУЧАЙНЫЕ СОБЫТИЯ (ПТИЦА) -----
+    function randomEvent() {
+      if (game.pendingEvent) return;
+      const events = [
+        { description:'🐦 Кот поймал птичку!', choices:[
+          {short:'Отпустить', text:'Вы отпустили птицу. +15 настроения.', mood:15},
+          {short:'Съесть', text:'Кот съел птичку. +20 сытости.', hunger:20},
+          {short:'В клетку', text:'Птица в клетке (можно продать).', item:'bird_cage'}
+        ]}
+      ];
+      let ev = events[0];
+      game.pendingEvent = ev;
+      addMessage(`${ev.description}\n1. ${ev.choices[0].short}\n2. ${ev.choices[1].short}\n3. ${ev.choices[2].short}\nВведите 1-3`, 'system');
+    }
+
+    function handlePendingEvent(answer) {
+      let ev = game.pendingEvent;
+      if (!ev) return;
+      game.pendingEvent = null;
+      let choice = parseInt(answer);
+      if (isNaN(choice) || choice < 1 || choice > 3) {
+        addMessage('Введите 1, 2 или 3.', 'system');
+        game.pendingEvent = ev;
+        return;
+      }
+      let out = ev.choices[choice-1];
+      if (out.mood) game.mood = Math.min(100, Math.max(0, game.mood + out.mood));
+      if (out.hunger) game.hunger = Math.min(100, Math.max(0, game.hunger + out.hunger));
+      if (out.item) game.items[out.item] = true;
+      addMessage(out.text, 'bot');
+      gainExp(10);
+      saveGame();
+    }
+
+    // ----- ОБРАБОТКА КОМАНД -----
+    function processCommand(cmd) {
+      cmd = cmd.trim().toLowerCase();
+      if (game.pendingEvent) { handlePendingEvent(cmd); return; }
+      let first = cmd.split(' ')[0];
+      if (game.isSleeping && first !== 'разбудить' && first !== 'статус' && first !== 'помощь') {
+        addMessage('Кот спит. Разбудите его командой "разбудить".', 'system');
+        return;
+      }
+      switch(first) {
+        case 'статус': showStatus(); break;
+        case 'убрать': if (cmd === 'убрать лоток') cleanLitterBox(); break;
+        case 'предложить':
+          if (cmd.includes('играть')) proposePlay();
+          else if (cmd.includes('гулять')) proposeWalk();
+          else if (cmd.includes('охоту')) proposeHunt();
+          else if (cmd.includes('трюк')) proposeTrick();
+          else if (cmd.includes('искать')) proposeSearch();
+          else if (cmd.includes('купаться')) proposeBath();
+          else addMessage('Неизвестное предложение.', 'system');
+          break;
+        case 'гладить': proposePet(); break;
+        case 'лакомство': giveTreat(); break;
+        case 'поговорить': meow(); break;
+        case 'лазер': proposeLaser(); break;
+        case 'ветеринар': proposeVet(); break;
+        case 'разбудить': wakeUp(); break;
+        case 'магазин': shop(); break;
+        case 'инвентарь': showInventory(); break;
+        case 'продать':
+          if (cmd.startsWith('продать ')) sellItem(cmd.replace('продать ','').trim());
+          else addMessage('Укажите предмет: продать птичка', 'system');
+          break;
+        case 'лотерея': scratchCard(); break;
+        case 'ставка': sportBet(cmd); break;
+        case 'рулетка': roulette(cmd); break;
+        case 'торговец': showMerchant(); break;
+        case 'дневник': showDiary(); break;
+        case 'достижения': showAchievements(); break;
+        case 'помощь': showHelp(); break;
+        case 'осмотреться': lookAround(); break;
+        case 'кухня': case 'спальня': case 'ванная': case 'гостиная': changeLocation(cmd); break;
+        case 'купить':
+          if (cmd.startsWith('купить у торговца ')) buyFromMerchant(cmd.replace('купить у торговца ',''));
+          else if (cmd.startsWith('купить ')) buyItem(cmd.replace('купить ',''));
+          else addMessage('Формат: купить [товар]', 'system');
+          break;
+        case 'использовать':
+          if (cmd.startsWith('использовать ')) useItem(cmd.replace('использовать ',''));
+          else addMessage('Использовать [предмет]', 'system');
+          break;
+        default:
+          if (cmd.startsWith('назвать ')) renameCat(cmd.replace('назвать ',''));
+          else if (cmd.startsWith('ждать ')) { let m = parseInt(cmd.split(' ')[1]); if (!isNaN(m) && m>0 && m<=480) skipTime(m); else addMessage('Укажите минуты (1-480).', 'system'); }
+          else addMessage('Неизвестная команда. Введите помощь.', 'system');
+      }
+    }
+
+    function backgroundTick() {
+      try {
+        if (game.merchant.active && Date.now() > game.merchant.until) {
+          game.merchant.active = false;
+          addMessage('🧳 Торговец уехал.', 'system');
+          saveGame();
+        }
+        if (!game.merchant.active && Math.random() < 0.02) spawnMerchant();
+        autonomousCatTick();
+        if (!game.pendingEvent && !game.isSleeping && Math.random() < 0.08) randomEvent();
+      } catch(e) { console.warn(e); }
+    }
+
+    function currentStage() {
+      let idx = Math.min(Math.floor(ageDays() / STAGE_DAYS), STAGES.length-1);
+      return STAGES[idx] || 'kitten';
+    }
+    function ageDays() { return (Date.now() - new Date(game.birth).getTime()) / (1000*60*60*24); }
+
+    window.onload = function() {
+      loadGame();
+      updateStatusPanel();
+      setInterval(backgroundTick, 30000);
+      addMessage('🐈‍⬛ Добро пожаловать в "Сфинкс: Эволюция 2.0"! Введите <b>помощь</b>.', 'bot');
+      showStatus();
+    };
+
+    const input = document.getElementById('cmd-input');
+    if (input) {
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          let val = this.value.trim();
+          if (val) { addMessage(val, 'user'); processCommand(val); }
+          this.value = '';
+        }
+      });
+    }
+    document.querySelectorAll('.quick-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        let cmd = this.dataset.cmd;
+        addMessage(cmd, 'user');
+        processCommand(cmd);
+      });
+    });
+  })();
+</script>
+</body>
+</html>
